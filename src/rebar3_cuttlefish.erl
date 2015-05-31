@@ -22,7 +22,7 @@ init(State) ->
             {deps, ?DEPS},                % The list of dependencies
             {example, "rebar3 cuttlefish"}, % How to use the plugin
             {opts, []},                   % list of options understood by the plugin
-            {short_desc, "Rebar3 cuttlefis plugin"},
+            {short_desc, "Rebar3 cuttlefish plugin"},
             {desc, ""}
     ]),
     {ok, rebar_state:add_provider(State, Provider)}.
@@ -30,6 +30,7 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
+    rebar_api:info("Running cuttlefish schema generator", []),
     Relx = rebar_state:get(State, relx, []),
     ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
 

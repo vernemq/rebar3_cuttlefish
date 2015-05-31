@@ -9,7 +9,7 @@
   1},
  {<<"lager">>,
   {git,"git://github.com/basho/lager.git",
-       {ref,"b6b6cebcb27ccff8acc59ae775acebc2f52e4926"}},
+       {ref,"d33ccf3b69de09a628fe38b4d7981bb8671b8a4f"}},
   1},
  {<<"getopt">>,
   {git,"git://github.com/jcomellas/getopt.git",
@@ -17,5 +17,5 @@
   1},
  {<<"cuttlefish">>,
   {git,"git://github.com/tsloughter/cuttlefish",
-       {ref,"bf99e43b68badc8d6e706b3c72663c200d2e1e41"}},
+       {ref,"f5f6fdc1b0dd8ebe909b81f0b38f5715d4e869e6"}},
   0}].
