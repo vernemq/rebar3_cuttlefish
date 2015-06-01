@@ -5,8 +5,6 @@
         ,do/1
         ,format_error/1]).
 
--include_lib("providers/include/providers.hrl").
-
 -define(PROVIDER, cuttlefish).
 -define(DEPS, [app_discovery]).
 
@@ -51,7 +49,7 @@ do(State) ->
         false ->
             {ok, State};
         _ ->
-            ?PRV_ERROR({bad_overlay_entry})
+            {error, {?MODULE, {bad_overlay_entry}}}
 
     end.
 
