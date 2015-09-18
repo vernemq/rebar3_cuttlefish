@@ -14,13 +14,13 @@ Use
 Add the plugin to your rebar config:
 
     {plugins, [
-        { rebar3_cuttlefish, ".*", {git, "git@host:user/rebar3_cuttlefish.git", {tag, "0.1.0"}}}
+        {rebar3_cuttlefish, {git, "git@github.com:tsloughter/rebar3_cuttlefish.git", {branch, "master"}}}
     ]}.
 
 Then just call your plugin directly in an existing application:
 
 
-    $ rebar3 rebar3_cuttlefish
+    $ rebar3 cuttlefish
     ===> Fetching rebar3_cuttlefish
     ===> Compiling rebar3_cuttlefish
-    <Plugin Output>
+    ===> Running cuttlefish schema generator
