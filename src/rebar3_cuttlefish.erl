@@ -6,7 +6,7 @@
         ,format_error/1]).
 
 -define(PROVIDER, cuttlefish).
--define(DEPS, [app_discovery]).
+-define(DEPS, [release]).
 
 %% ===================================================================
 %% Public API
