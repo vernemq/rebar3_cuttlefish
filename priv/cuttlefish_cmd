@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# start cuttlefish=====================================================
+# generate cuttlefish config and set variable
+SCRIPT=$(readlink $0 || true)
+if [ -z $SCRIPT ]; then
+	SCRIPT=$0
+fi;
+SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
+ABS_ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+
+# if user wroted a config file, just use them
+if [ -f "$ABS_ROOT_DIR/etc/app.config" ]; then
+	RELX_CONFIG_PATH="$ABS_ROOT_DIR/etc/app.config"
+fi
+if [ -f "$ABS_ROOT_DIR/etc/vm.args" ]; then
+	VMARGS_PATH="$ABS_ROOT_DIR/etc/vm.args"
+fi
+
+case "$1" in 
+	start|start_boot|console|console_clean|console_boot|foreground)
+		;;
+	*)
+		# trying load the last generated config file
+		if [ -z "$RELX_CONFIG_PATH" ]; then
+			RELX_CONFIG_PATH=`find $ABS_ROOT_DIR/etc/generated.configs -name "*.config" | sort -r | head -n 1`
+		fi
+		if [ -z "VMARGS_PATH" ]; then
+			VMARGS_PATH=`find $ABS_ROOT_DIR/etc/generated.configs -name "*.args" | sort -r | head -n 1`
+		fi
+esac
+
+# need generate config file
+if [ -z "$RELX_CONFIG_PATH" -o -z "$VMARGS_PATH" ]; then
+	cd $ABS_ROOT_DIR
+	__cuttlefish_ret=`$ABS_ROOT_DIR/bin/cuttlefish -e $ABS_ROOT_DIR/etc -d $ABS_ROOT_DIR/etc/generated.configs \
+ -s $ABS_ROOT_DIR/lib -c $ABS_ROOT_DIR/etc/{{release_name}}.conf`
+
+	if [ -z "$__cuttlefish_ret" ]; then
+		echo "cuttlefish generate config files failed\n"
+		exit
+	else
+		RELX_CONFIG_PATH=`echo $__cuttlefish_ret | awk '{print $2}'`
+		VMARGS_PATH=`echo $__cuttlefish_ret | awk '{print $4}'`
+	fi
+fi
+# end cuttlefish========================================================
+
+
+
