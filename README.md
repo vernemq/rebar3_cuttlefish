@@ -1,7 +1,7 @@
 rebar3_cuttlefish
 =====
 
-This plugin provides cuttlefish and automatically updates the release configuration at runtime to utilize cuttlefish.
+This plugin provides cuttlefish and automatically updates the release configuration at runtime to utilize cuttlefish. There is no need to add schema files to the relx overlay, copy the cuttlefish escript or create a custom start script, it is all handled by the plugin provider.
 
 Add the plugin to your top level rebar config:
 
