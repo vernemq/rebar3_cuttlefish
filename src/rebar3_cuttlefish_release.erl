@@ -58,7 +58,7 @@ do(State) ->
             %% These errors were already printed
             error;
         {_Translations, Mappings, _Validators} ->
-            make_default_file(State1, Name, TargetDir, Mappings)
+            make_default_file(Name, TargetDir, Mappings)
     end,
 
     rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1).
@@ -67,8 +67,8 @@ do(State) ->
 format_error(Error) ->
     io_lib:format("~p", [Error]).
 
-make_default_file(State, Name, TargetDir, Mappings) ->
-    File = rebar_state:get(State, cuttlefish_filename, io_lib:format("~s.conf", [Name])),
+make_default_file(Name, TargetDir, Mappings) ->
+    File = io_lib:format("~s.conf", [Name]),
     Filename = filename:join([TargetDir, "etc", File]),
     filelib:ensure_dir(Filename),
     cuttlefish_conf:generate_file(Mappings, Filename).
@@ -82,6 +82,8 @@ schemas(Apps) ->
 overlays(Relx, Name, Overlays, Schemas) ->
     ConfFile = proplists:get_value(cuttlefish_conf, Relx, filename:join("config", atom_to_list(Name)++".conf")),
     BinScriptTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "bin_script"]),
+    NodeTool = filename:join([code:priv_dir(rebar3_cuttlefish), "nodetool"]),
+    InstallUpgrade = filename:join([code:priv_dir(rebar3_cuttlefish), "install_upgrade_escript"]),
     BinScript = filename:join(["bin", Name]),
     SchemaOverlays = [{template, Schema, filename:join(["share", "schema", filename:basename(Schema)])}
                      || Schema <- Schemas, not lists:keymember(Schema, 2, Overlays)],
@@ -89,4 +91,6 @@ overlays(Relx, Name, Overlays, Schemas) ->
      {mkdir, "share"},
      {mkdir, "share/schema"},
      {copy, ConfFile, "etc/"},
+     {copy, NodeTool, filename:join(["bin", "nodetool"])},
+     {copy, InstallUpgrade, filename:join(["bin", "install_upgrade.escript"])},
      {template, BinScriptTemplate, BinScript} | SchemaOverlays].

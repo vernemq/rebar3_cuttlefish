@@ -9,6 +9,7 @@ fi;
 SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
 RELEASE_ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 REL_NAME="{{ release_name }}"
+CUTTLEFISH_CONF="{{ release_name }}.conf"
 REL_VSN="{{ rel_vsn }}"
 ERTS_VSN="{{ erts_vsn }}"
 CODE_LOADING_MODE="${CODE_LOADING_MODE:-embedded}"
@@ -91,84 +92,29 @@ relx_start_command() {
            "$START_OPTION"
 }
 
-# Use $CWD/vm.args if exists, otherwise releases/VSN/vm.args
-if [ -z "$VMARGS_PATH" ]; then
-    if [ -f "$RELEASE_ROOT_DIR/vm.args" ]; then
-        VMARGS_PATH="$RELEASE_ROOT_DIR/vm.args"
-    else
-        VMARGS_PATH="$REL_DIR/vm.args"
-    fi
-fi
-
-orig_vmargs_path="$VMARGS_PATH.orig"
-if [ $RELX_REPLACE_OS_VARS ]; then
-    #Make sure we don't break dev mode by keeping the symbolic link to
-    #the user's vm.args
-    if [ ! -L "$orig_vmargs_path" ]; then
-       #we're in copy mode, rename the vm.args file to vm.args.orig
-       mv "$VMARGS_PATH" "$orig_vmargs_path"
-    fi
-
-    awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$orig_vmargs_path" > "$VMARGS_PATH"
- else
-    #We don't need to replace env. vars, just rename the
-    #symlink vm.args.orig to vm.args, and keep it as a
-    #symlink.
-    if [ -L "$orig_vmargs_path" ]; then
-       mv "$orig_vmargs_path" "$VMARGS_PATH"
-    fi
-fi
-
 # Make sure log directory exists
 mkdir -p "$RUNNER_LOG_DIR"
 
 # Use $CWD/sys.config if exists, otherwise releases/VSN/sys.config
-if [ -z "$RELX_CONFIG_PATH" ]; then
-    if [ -f "$RELEASE_ROOT_DIR/sys.config" ]; then
-        RELX_CONFIG_PATH="$RELEASE_ROOT_DIR/sys.config"
-    else
-        RELX_CONFIG_PATH="$REL_DIR/sys.config"
-    fi
-fi
-
-orig_relx_config_path="$RELX_CONFIG_PATH.orig"
-if [ $RELX_REPLACE_OS_VARS ]; then
-    #Make sure we don't break dev mode by keeping the symbolic link to
-    #the user's sys.config
-    if [ ! -L "$orig_relx_config_path" ]; then
-       #We're in copy mode, rename sys.config to sys.config.orig
-       mv "$RELX_CONFIG_PATH" "$orig_relx_config_path"
-    fi
-
-    awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$orig_relx_config_path" > "$RELX_CONFIG_PATH"
- else
-    #We don't need to replace env. vars, just rename the
-    #symlink sys.config.orig to sys.config. Keep it as
-    #a symlink.
-    if [ -L "$orig_relx_config_path" ]; then
-       mv "$orig_relx_config_path"  "$RELX_CONFIG_PATH"
-    fi
-fi
-
 if [ -z "$NAME_ARG" ]; then
-    NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $RUNNER_ETC_DIR/nucleus.conf 2> /dev/null | tail -n 1 | cut -d = -f 2`
+    NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF 2> /dev/null | tail -n 1 | cut -d = -f 2`
     if [ -z "$NODENAME" ]; then
         echo "vm.args needs to have a -name parameter."
         echo "  -sname is not supported."
         exit 1
     else
-        NAME_ARG="-name ${NODENAME# *}"
+        NAME_TYPE="-name"
+        NAME="${NODENAME# *}"
     fi
 fi
 
-NAME="$(echo "$NAME_ARG" | awk '{print $2}')"
+echo $NAME
 PIPE_DIR="${PIPE_DIR:-/tmp/erl_pipes/$NAME/}"
 
 # Extract the target cookie
 #COOKIE_ARG=`grep -e '-setcookie' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$COOKIE_ARG" ]; then
-#TODO: change {{cuttlefish_conf}} to something more senisble!
-    COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $RUNNER_ETC_DIR/nucleus.conf 2> /dev/null | cut -d = -f 2`
+    COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF 2> /dev/null | cut -d = -f 2`
     if [ -z "$COOKIE" ]; then
         echo "vm.args needs to have a -setcookie parameter."
         exit 1
@@ -187,6 +133,15 @@ ERTS_LIB_DIR="$ERTS_DIR/../lib"
 CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RUNNER_BASE_DIR/bin/cuttlefish"
 
 cd "$ROOTDIR"
+
+if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_BASE_DIR/generated -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF)
+then
+    CONFIG_FILES="$CUTTLEFISH_CONFIG"
+else
+    echo "Cuttlefish failed! Oh no!"
+    exit 1
+fi
+
 
 # User can specify an sname without @hostname
 # This will fail when creating remote shell
@@ -211,14 +166,6 @@ esac
 # Check the first argument for instructions
 case "$1" in
     start|start_boot)
-
-        # Make sure there is not already a node running
-        #RES=`$NODETOOL ping`
-        #if [ "$RES" = "pong" ]; then
-        #    echo "Node is already running!"
-        #    exit 1
-        #fi
-        # Save this for later.
         CMD=$1
         case "$1" in
             start)
@@ -378,14 +325,7 @@ case "$1" in
         ROOTDIR=$RUNNER_BASE_DIR
         EMU=beam
         PROGNAME=`echo $0 | sed 's/.*\\///'`
-        if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_BASE_DIR/generated -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/nucleus.conf)
-        then
-            CONFIG_FILES="$CUTTLEFISH_CONFIG"
-        else
-            echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
-            CONFIG_FILES="-config $RUNNER_ETC_DIR/app.config -args_file $RUNNER_ETC_DIR/vm.args"
-        fi
-        CMD="$BINDIR/erlexec -boot $BOOTFILE -embedded $CONFIG_FILES -- ${1+"$@"}"
+        CMD="$BINDIR/erlexec -boot $BOOTFILE -boot_var ERTS_LIB_DIR $ERTS_LIB_DIR  -mode $CODE_LOADING_MODE $CONFIG_FILES -- ${1+"$@"}"
         export EMU
         export ROOTDIR
         export BINDIR
@@ -422,9 +362,8 @@ case "$1" in
         # Build an array of arguments to pass to exec later on
         # Build it here because this command will be used for logging.
         set -- "$BINDIR/erlexec" $FOREGROUNDOPTIONS \
-            -boot "$REL_DIR/$BOOTFILE" -mode "$CODE_LOADING_MODE" -config "$RELX_CONFIG_PATH" \
-            -boot_var ERTS_LIB_DIR "$ERTS_LIB_DIR" \
-            -args_file "$VMARGS_PATH"
+            -boot "$REL_DIR/$BOOTFILE" -mode "$CODE_LOADING_MODE" "$CONFIG_FILES" \
+            -boot_var ERTS_LIB_DIR "$ERTS_LIB_DIR"
 
         # Dump environment info for logging purposes
         echo "Exec: $@" -- ${1+$ARGS}
