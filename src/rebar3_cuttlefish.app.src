@@ -8,5 +8,9 @@
     cuttlefish
    ]},
   {env,[]},
-  {modules, []}
+  {modules, []},
+
+  {maintainers,[]},
+  {licenses,["Apache"]},
+  {links,[{"Github","https://github.com/tsloughter/rebar3_cuttlefish"}]}
  ]}.
