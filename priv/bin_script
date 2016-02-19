@@ -108,7 +108,6 @@ if [ -z "$NAME_ARG" ]; then
     fi
 fi
 
-echo $NAME
 PIPE_DIR="${PIPE_DIR:-/tmp/erl_pipes/$NAME/}"
 
 # Extract the target cookie
