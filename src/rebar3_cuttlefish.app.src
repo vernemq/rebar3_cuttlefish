@@ -1,16 +1,11 @@
-{application, 'rebar3_cuttlefish',
- [{description, "A rebar plugin"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {applications,
-   [kernel,
-    stdlib,
-    cuttlefish
-   ]},
-  {env,[]},
-  {modules, []},
-
-  {maintainers,[]},
-  {licenses,["Apache"]},
-  {links,[{"Github","https://github.com/tsloughter/rebar3_cuttlefish"}]}
- ]}.
+{application,rebar3_cuttlefish,
+             [{description,"A rebar plugin"},
+              {vsn,"0.2.0"},
+              {registered,[]},
+              {applications,[kernel,stdlib,cuttlefish]},
+              {env,[]},
+              {modules,[]},
+              {maintainers,[]},
+              {licenses,["Apache"]},
+              {links,[{"Github",
+                       "https://github.com/tsloughter/rebar3_cuttlefish"}]}]}.
