@@ -91,11 +91,19 @@ overlays(Name, Overlays, Schemas) ->
     NodeTool = filename:join([code:priv_dir(rebar3_cuttlefish), "nodetool"]),
     InstallUpgrade = filename:join([code:priv_dir(rebar3_cuttlefish), "install_upgrade_escript"]),
     BinScript = filename:join(["bin", Name]),
+    Overlays1 = [ list_to_binary(F) || {_, F, _} <- Overlays],
     SchemaOverlays = [{template, Schema, filename:join(["share", "schema", filename:basename(Schema)])}
-                     || Schema <- Schemas, not lists:keymember(Schema, 2, Overlays)],
+                      || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
     [{copy, "./_build/default/bin/cuttlefish", "bin/cuttlefish"},
      {mkdir, "share"},
      {mkdir, "share/schema"},
      {copy, NodeTool, filename:join(["bin", "nodetool"])},
      {copy, InstallUpgrade, filename:join(["bin", "install_upgrade.escript"])},
      {template, BinScriptTemplate, BinScript} | SchemaOverlays].
+
+is_overlay(SchemaS, Overlays) ->
+    Schema = list_to_binary(SchemaS),
+    Suffixes = [{byte_size(Overlay),
+                 binary:longest_common_suffix(
+                   [Schema, Overlay])} || Overlay <- Overlays],
+    [L || {L, L} <- Suffixes] =/= [].
