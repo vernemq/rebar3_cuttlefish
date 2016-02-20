@@ -38,8 +38,9 @@ do(State) ->
 
     Deps = rebar_state:all_deps(State),
     Apps = rebar_state:project_apps(State),
+    {ok, Cuttlefish} = rebar_app_utils:find(<<"cuttlefish">>, rebar_state:all_plugin_deps(State)),
 
-    AllSchemas = schemas(Deps++Apps),
+    AllSchemas = schemas([Cuttlefish | Deps++Apps]),
 
     Overlays1 = case lists:keyfind(overlay, 1, Relx) of
                     {overlay, Overlays} when is_list(Overlays) ->
