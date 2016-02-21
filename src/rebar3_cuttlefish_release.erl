@@ -63,10 +63,10 @@ do(State) ->
                                 [{template, C, C} | Overlays1]
                         end,
 
-            State1 = rebar_state:set(State, relx, [{sys_config, false},
-                                                   {vm_args, false},
-                                                   {generate_start_script, false},
-                                                   {overlay, Overlays2} | lists:keydelete(overlay, 1, Relx)]),
+            State1 = rebar_state:set(State, relx, lists:keydelete(overlay, 1, Relx) ++ [{sys_config, false},
+                                                                                        {vm_args, false},
+                                                                                        {generate_start_script, false},
+                                                                                        {overlay, Overlays2}]),
             rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1)
     end.
 
