@@ -21,7 +21,7 @@ The plugin provider will tell relx to create the dirs `share/schema` in the rele
         {dev_mode, true},
         {include_erts, false},
 
-        {overlay_vars, "vars.config"}]}.
+        {overlay_vars, "config/vars.config"}]}.
 ```
 
 ```erlang
