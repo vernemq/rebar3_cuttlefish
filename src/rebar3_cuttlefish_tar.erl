@@ -6,8 +6,8 @@
         ,format_error/1]).
 
 -define(PROVIDER, tar).
--define(NAMESPACE, cuttlefish).
--define(DEPS, [{cuttlefish, release}]).
+-define(NAMESPACE, default).
+-define(DEPS, [{?NAMESPACE, release}]).
 
 %% ===================================================================
 %% Public API

@@ -6,8 +6,8 @@
         ,format_error/1]).
 
 -define(PROVIDER, release).
--define(NAMESPACE, cuttlefish).
--define(DEPS, [{default, compile}]).
+-define(NAMESPACE, default).
+-define(DEPS, [{?NAMESPACE, compile}]).
 
 %% ===================================================================
 %% Public API
@@ -57,10 +57,10 @@ do(State) ->
             ConfFile = filename:join("config", atom_to_list(Name)++".conf"),
             Overlays2 = case filelib:is_regular(ConfFile) of
                             true ->
-                                [{copy, ConfFile, "etc/"} | Overlays1];
+                                [{template, ConfFile, "etc/"} | Overlays1];
                             false ->
-                                make_default_file(Name, TargetDir, Mappings),
-                                Overlays1
+                                C = make_default_file(Name, TargetDir, Mappings),
+                                [{template, C, C} | Overlays1]
                         end,
 
             State1 = rebar_state:set(State, relx, [{sys_config, false},
@@ -78,7 +78,8 @@ make_default_file(Name, TargetDir, Mappings) ->
     File = io_lib:format("~s.conf", [Name]),
     Filename = filename:join([TargetDir, "etc", File]),
     filelib:ensure_dir(Filename),
-    cuttlefish_conf:generate_file(Mappings, Filename).
+    cuttlefish_conf:generate_file(Mappings, Filename),
+    Filename.
 
 schemas(Apps) ->
     lists:flatmap(fun(App) ->
