@@ -36,6 +36,18 @@ The plugin provider will tell relx to create the dirs `share/schema` in the rele
 {crash_dump,   "{{platform_log_dir}}/erl_crash.dump"}.
 ```
 
+## Configuration
+
+The Cuttlefish plugin can take some configuration values:
+```erlang
+{cuttlefish,
+ [{file_name, "<myapp>.conf.example"},
+  {schema_discovery, false}]}
+```
+
+- `file_name` will define the file the config is written to. (`<app>.conf` is the default)
+- `schema_discovery` can be set to true or false to either enable or disalbe discovering all schema files in libraries. (`true` is the default).
+
 ## Running Multiple Nodes
 
 Somtimes for testing you want to boot multiple nodes and require separate node names or ports, rebar3 makes this easy. First add a profile entry per node you want to run:

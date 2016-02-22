@@ -32,50 +32,65 @@ init(State) ->
 do(State) ->
     rebar_api:info("Running cuttlefish schema generator", []),
     Relx = rebar_state:get(State, relx, []),
-    ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
-    {release, {Name, _Vsn}, _} = lists:keyfind(release, 1, Relx),
-    TargetDir = filename:join([ReleaseDir, Name]),
+    CFConf = rebar_state:get(State, cuttlefish, []),
 
+    ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
+    BinDir = filename:join(rebar_dir:base_dir(State), "bin"),
+    {release, {Name, _Vsn}, _} = lists:keyfind(release, 1, Relx),
+    CFFile = case lists:keyfind(file_name, 1, CFConf) of
+                   {file_name, DefinedFileName} ->
+                       DefinedFileName;
+                   _ ->
+                       io_lib:format("~s.conf", [Name])
+               end,
+    TargetDir = filename:join([ReleaseDir, Name]),
     Deps = rebar_state:all_deps(State),
     Apps = rebar_state:project_apps(State),
     {ok, Cuttlefish} = rebar_app_utils:find(<<"cuttlefish">>, rebar_state:all_plugin_deps(State)),
 
     AllSchemas = schemas([Cuttlefish | Deps++Apps]),
 
-    case cuttlefish_schema:files(AllSchemas) of
+    Overlays1 = case {lists:keyfind(schema_discovery, 1, CFConf),
+                      lists:keyfind(overlay, 1, Relx)} of
+                    {{schema_discovery, false}, {overlay, Overlays}} ->
+                        Overlays;
+                    {{schema_discovery, false}, _} ->
+                        [];
+                    {_, {overlay, Overlays}} when is_list(Overlays) ->
+                        Overlays ++ overlays(Name, BinDir, Overlays, AllSchemas);
+                    _ ->
+                        overlays(Name, BinDir, [], AllSchemas)
+                end,
+    ConfFile = filename:join("config", atom_to_list(Name)++".conf"),
+
+    Overlays2 = case filelib:is_regular(ConfFile) of
+                    true ->
+                        [{template, ConfFile, "etc/" ++ CFFile} | Overlays1];
+                    false ->
+                        Overlays1
+                end,
+    State1 = rebar_state:set(State, relx, lists:keydelete(overlay, 1, Relx) ++
+                                 [{sys_config, false},
+                                  {vm_args, false},
+                                  {generate_start_script, false},
+                                  {overlay, Overlays2}]),
+    Res = rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1),
+    SchemaGlob = filename:join([TargetDir, "share", "schema", "*.schema"]),
+    ReleaseSchemas = filelib:wildcard(SchemaGlob),
+    case cuttlefish_schema:files(ReleaseSchemas) of
         {errorlist, _Es} ->
             %% These errors were already printed
             {error, "bad cuttlefish schemas"};
         {_Translations, Mappings, _Validators} ->
-            Overlays1 = case lists:keyfind(overlay, 1, Relx) of
-                            {overlay, Overlays} when is_list(Overlays) ->
-                                Overlays ++ overlays(Name, Overlays, AllSchemas);
-                            _ ->
-                                overlays(Name, [], AllSchemas)
-                        end,
-
-            ConfFile = filename:join("config", atom_to_list(Name)++".conf"),
-            Overlays2 = case filelib:is_regular(ConfFile) of
-                            true ->
-                                [{template, ConfFile, "etc/"} | Overlays1];
-                            false ->
-                                C = make_default_file(Name, TargetDir, Mappings),
-                                [{template, C, C} | Overlays1]
-                        end,
-
-            State1 = rebar_state:set(State, relx, lists:keydelete(overlay, 1, Relx) ++ [{sys_config, false},
-                                                                                        {vm_args, false},
-                                                                                        {generate_start_script, false},
-                                                                                        {overlay, Overlays2}]),
-            rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1)
+            make_default_file(CFFile, TargetDir, Mappings),
+            Res
     end.
 
 -spec format_error(any()) ->  iolist().
 format_error(Error) ->
     io_lib:format("~p", [Error]).
 
-make_default_file(Name, TargetDir, Mappings) ->
-    File = io_lib:format("~s.conf", [Name]),
+make_default_file(File, TargetDir, Mappings) ->
     Filename = filename:join([TargetDir, "etc", File]),
     filelib:ensure_dir(Filename),
     cuttlefish_conf:generate_file(Mappings, Filename),
@@ -87,7 +102,7 @@ schemas(Apps) ->
                       filelib:wildcard(filename:join([Dir, "{priv,schema}", "*.schema"]))
                   end, Apps) ++ filelib:wildcard(filename:join(["{priv,schema}", "*.schema"])).
 
-overlays(Name, Overlays, Schemas) ->
+overlays(Name, BinDir, Overlays, Schemas) ->
     BinScriptTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "bin_script"]),
     NodeTool = filename:join([code:priv_dir(rebar3_cuttlefish), "nodetool"]),
     InstallUpgrade = filename:join([code:priv_dir(rebar3_cuttlefish), "install_upgrade_escript"]),
@@ -95,7 +110,8 @@ overlays(Name, Overlays, Schemas) ->
     Overlays1 = [ list_to_binary(F) || {_, F, _} <- Overlays],
     SchemaOverlays = [{template, Schema, filename:join(["share", "schema", filename:basename(Schema)])}
                       || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
-    [{copy, "./_build/default/bin/cuttlefish", "bin/cuttlefish"},
+    Cuttlefish = filename:join([BinDir, "cuttlefish"]),
+    [{copy, Cuttlefish, "bin/cuttlefish"},
      {mkdir, "share"},
      {mkdir, "share/schema"},
      {copy, NodeTool, filename:join(["bin", "nodetool"])},
