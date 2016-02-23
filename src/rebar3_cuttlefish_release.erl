@@ -37,7 +37,7 @@ do(State) ->
     ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
     CuttlefishBin = case filelib:is_regular(filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"])) of
                  true ->
-                     filename:join(rebar_dir:base_dir(State), "bin", "cuttlefish");
+                     filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"]);
                  false ->
                      case filelib:wildcard(filename:join(["_build", "*", "bin", "cuttlefish"])) of
                          [C | _] ->
