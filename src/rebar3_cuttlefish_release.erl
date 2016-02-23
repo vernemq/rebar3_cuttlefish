@@ -35,14 +35,14 @@ do(State) ->
     CFConf = rebar_state:get(State, cuttlefish, []),
 
     ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
-    BinDir = case filelib:is_regular(filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"])) of
+    CuttlefishBin = case filelib:is_regular(filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"])) of
                  true ->
-                     filename:join(rebar_dir:base_dir(State), "bin");
+                     filename:join(rebar_dir:base_dir(State), "bin", "cuttlefish");
                  false ->
-                     case filelib:is_regular(filename:join(["_build/default", "bin", "cuttlefish"])) of
-                         true ->
-                             "_build/default/bin";
-                         false ->
+                     case filelib:wildcard(filename:join(["_build", "*", "bin", "cuttlefish"])) of
+                         [C | _] ->
+                             C;
+                         [] ->
                              throw({no_cuttlefish_escript, rebar_dir:base_dir(State)})
                      end
              end,
@@ -69,9 +69,9 @@ do(State) ->
                     {{schema_discovery, false}, _} ->
                         [];
                     {_, {overlay, Overlays}} when is_list(Overlays) ->
-                        Overlays ++ overlays(Name, BinDir, Overlays, AllSchemas);
+                        Overlays ++ overlays(Name, CuttlefishBin, Overlays, AllSchemas);
                     _ ->
-                        overlays(Name, BinDir, [], AllSchemas)
+                        overlays(Name, CuttlefishBin, [], AllSchemas)
                 end,
     ConfFile = filename:join("config", atom_to_list(Name)++".conf"),
 
@@ -117,7 +117,7 @@ schemas(Apps) ->
                       filelib:wildcard(filename:join([Dir, "{priv,schema}", "*.schema"]))
                   end, Apps) ++ filelib:wildcard(filename:join(["{priv,schema}", "*.schema"])).
 
-overlays(Name, BinDir, Overlays, Schemas) ->
+overlays(Name, Cuttlefish, Overlays, Schemas) ->
     BinScriptTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "bin_script"]),
     NodeTool = filename:join([code:priv_dir(rebar3_cuttlefish), "nodetool"]),
     InstallUpgrade = filename:join([code:priv_dir(rebar3_cuttlefish), "install_upgrade_escript"]),
@@ -125,7 +125,6 @@ overlays(Name, BinDir, Overlays, Schemas) ->
     Overlays1 = [ list_to_binary(F) || {_, F, _} <- Overlays],
     SchemaOverlays = [{template, Schema, filename:join(["share", "schema", filename:basename(Schema)])}
                       || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
-    Cuttlefish = filename:join([BinDir, "cuttlefish"]),
     [{copy, Cuttlefish, "bin/cuttlefish"},
      {mkdir, "share"},
      {mkdir, "share/schema"},
