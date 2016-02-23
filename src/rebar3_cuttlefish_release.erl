@@ -35,7 +35,19 @@ do(State) ->
     CFConf = rebar_state:get(State, cuttlefish, []),
 
     ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
-    BinDir = filename:join(rebar_dir:base_dir(State), "bin"),
+    BinDir = case filelib:is_regular(filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"])) of
+                 true ->
+                     filename:join(rebar_dir:base_dir(State), "bin");
+                 false ->
+                     case filelib:is_regular(filename:join(["_build/default", "bin", "cuttlefish"])) of
+                         true ->
+                             "_build/default/bin";
+                         false ->
+                             throw({no_cuttlefish_escript, rebar_dir:base_dir(State)})
+                     end
+             end,
+
+
     {release, {Name, _Vsn}, _} = lists:keyfind(release, 1, Relx),
     CFFile = case lists:keyfind(file_name, 1, CFConf) of
                    {file_name, DefinedFileName} ->
@@ -87,6 +99,9 @@ do(State) ->
     end.
 
 -spec format_error(any()) ->  iolist().
+format_error({no_cuttlefish_escript, ProfileDir}) ->
+    io_lib:format("No cuttlefish escript found under ~s or ~s", [filename:join(ProfileDir, "bin"),
+                                                                "_build/default/bin"]);
 format_error(Error) ->
     io_lib:format("~p", [Error]).
 
