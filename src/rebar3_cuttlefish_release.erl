@@ -89,12 +89,17 @@ do(State) ->
     Res = rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1),
     SchemaGlob = filename:join([TargetDir, "share", "schema", "*.schema"]),
     ReleaseSchemas = filelib:wildcard(SchemaGlob),
-    case cuttlefish_schema:files(ReleaseSchemas) of
-        {errorlist, _Es} ->
-            %% These errors were already printed
-            {error, "bad cuttlefish schemas"};
-        {_Translations, Mappings, _Validators} ->
-            make_default_file(CFFile, TargetDir, Mappings),
+    case filelib:is_regular(ConfFile) of
+        false ->
+            case cuttlefish_schema:files(ReleaseSchemas) of
+                {errorlist, _Es} ->
+                    %% These errors were already printed
+                    {error, "bad cuttlefish schemas"};
+                {_Translations, Mappings, _Validators} ->
+                    make_default_file(CFFile, TargetDir, Mappings),
+                    Res
+            end;
+        true ->
             Res
     end.
 
