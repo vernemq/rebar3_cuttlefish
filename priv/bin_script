@@ -119,6 +119,8 @@ if [ -z "$COOKIE_ARG" ]; then
     COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF 2> /dev/null | cut -d = -f 2 | tr -d ' '`
     if [ -z "$COOKIE" ]; then
         echo "vm.args needs to have a -setcookie parameter."
+        echo "  couldn't find 'distributed_cookie' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF"
+        echo "  \$PWD is $PWD"
         exit 1
     else
         COOKIE_ARG="-setcookie $COOKIE"
