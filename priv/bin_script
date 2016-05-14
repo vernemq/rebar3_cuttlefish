@@ -102,6 +102,8 @@ if [ -z "$NAME_ARG" ]; then
     if [ -z "$NODENAME" ]; then
         echo "vm.args needs to have a -name parameter."
         echo "  -sname is not supported."
+        echo "  couldn't find 'nodename' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF"
+        echo "  \$PWD is $PWD"
         exit 1
     else
         NAME_TYPE="-name"
