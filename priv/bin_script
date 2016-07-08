@@ -146,7 +146,6 @@ else
     exit 1
 fi
 
-
 # User can specify an sname without @hostname
 # This will fail when creating remote shell
 # So here we check for @ and add @hostname if missing
@@ -237,6 +236,32 @@ case "$1" in
         if ! relx_nodetool "ping"; then
             exit 1
         fi
+        ;;
+
+    config)
+        shift
+        case "$1" in
+            effective) ## Great, pass through!
+                ;;
+            describe)
+                if [ $# -lt 2 ] || [ "$2" = "-l" ]; then
+                    echo "$RUNNER_SCRIPT config describe requires a variable name to query"
+                    echo "  Try \`$RUNNER_SCRIPT config describe setting.name\`"
+                    exit 1
+                fi
+                ;;
+            generate) ## Great, pass through!
+                ;;
+            *)
+                echo "Valid commands for$RUNNER_SCRIPT config are:"
+                echo "  $RUNNER_SCRIPT config effective"
+                echo "  $RUNNER_SCRIPT config describe VARIABLE"
+                exit 1
+                ;;
+        esac
+
+        CUTTLEFISH_COMMAND_PREFIX="$RUNNER_BASE_DIR/bin/cuttlefish -e $RUNNER_ETC_DIR -s $RUNNER_BASE_DIR/share/schema -d $RUNNER_BASE_DIR/generated.configs -c $RUNNER_ETC_DIR/cse_spooler.conf"
+        printf '%s \n' "`$CUTTLEFISH_COMMAND_PREFIX $@`"
         ;;
 
     escript)
@@ -400,7 +425,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: $REL_NAME {start|start_boot <file>|foreground|stop|restart|reboot|pid|ping|console|console_clean|console_boot <file>|attach|remote_console|upgrade|escript|rpc|rpcterms}"
+        echo "Usage: $REL_NAME {start|start_boot <file>|foreground|stop|restart|reboot|pid|ping|console|console_clean|console_boot <file>|attach|remote_console|upgrade|config|escript|rpc|rpcterms}"
         exit 1
         ;;
 esac
