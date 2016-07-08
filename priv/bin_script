@@ -238,7 +238,7 @@ case "$1" in
         fi
         ;;
 
-config)
+    config)
         shift
         case "$1" in
             effective) ## Great, pass through!
