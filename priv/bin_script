@@ -20,6 +20,12 @@ RUNNER_BASE_DIR=$RELEASE_ROOT_DIR
 RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-{{ platform_etc_dir }}}"
 RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-$RELEASE_ROOT_DIR/etc}"
 
+if [ "$RUNNER_ETC_DIR" = "${RUNNER_ETC_DIR#/}" ]
+then
+    # if relative, make it relative to RELEASE_ROOT_DIR
+    RUNNER_ETC_DIR=$RELEASE_ROOT_DIR/$RUNNER_ETC_DIR
+fi # else absolute, keep it as it is
+
 find_erts_dir() {
     __erts_dir="$RELEASE_ROOT_DIR/erts-$ERTS_VSN"
     if [ -d "$__erts_dir" ]; then
