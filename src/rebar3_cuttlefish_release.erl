@@ -39,15 +39,14 @@ do(State) ->
                  true ->
                      filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"]);
                  false ->
-                     case filelib:wildcard(filename:join(["_build", "*", "bin", "cuttlefish"])) ++
-                          filelib:wildcard(filename:join(["_checkouts", "cuttlefish*", "cuttlefish"])) of
+                     case filelib:wildcard(filename:join(["_checkouts", "cuttlefish*", "cuttlefish"])) ++
+                         filelib:wildcard(filename:join(["_build", "*", "bin", "cuttlefish"])) of
                          [C | _] ->
                              C;
                          [] ->
                              throw({no_cuttlefish_escript, rebar_dir:base_dir(State)})
                      end
              end,
-
 
     {release, {Name, _Vsn}, _} = lists:keyfind(release, 1, Relx),
     CFFile = case lists:keyfind(file_name, 1, CFConf) of
@@ -60,7 +59,6 @@ do(State) ->
     Deps = rebar_state:all_deps(State),
     Apps = rebar_state:project_apps(State),
     {ok, Cuttlefish} = rebar_app_utils:find(<<"cuttlefish">>, rebar_state:all_plugin_deps(State)),
-
     AllSchemas = schemas([Cuttlefish | Deps++Apps]),
 
     Overlays1 = case {lists:keyfind(schema_discovery, 1, CFConf),
@@ -74,6 +72,7 @@ do(State) ->
                     _ ->
                         overlays(Name, CuttlefishBin, [], AllSchemas)
                 end,
+
     ConfFile = filename:join("config", atom_to_list(Name)++".conf"),
 
     Overlays2 = case filelib:is_regular(ConfFile) of
@@ -90,6 +89,7 @@ do(State) ->
     Res = rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1),
     SchemaGlob = filename:join([TargetDir, "share", "schema", "*.schema"]),
     ReleaseSchemas = filelib:wildcard(SchemaGlob),
+
     case filelib:is_regular(ConfFile) of
         false ->
             case cuttlefish_schema:files(ReleaseSchemas) of
