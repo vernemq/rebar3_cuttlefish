@@ -1,6 +1,6 @@
 {application,rebar3_cuttlefish,
              [{description,"A rebar plugin"},
-              {vsn,"0.13.2"},
+              {vsn,"0.14.0"},
               {registered,[]},
               {applications,[kernel,stdlib,cuttlefish]},
               {env,[]},
