@@ -272,7 +272,7 @@ case "$1" in
                 ;;
         esac
 
-        CUTTLEFISH_COMMAND_PREFIX="$RUNNER_BASE_DIR/bin/cuttlefish -e $RUNNER_ETC_DIR -s $RUNNER_BASE_DIR/share/schema -d $RUNNER_BASE_DIR/generated.configs -c $RUNNER_ETC_DIR/cse_spooler.conf"
+        CUTTLEFISH_COMMAND_PREFIX="$RUNNER_BASE_DIR/bin/cuttlefish -e $RUNNER_ETC_DIR -s $RUNNER_BASE_DIR/share/schema -d $RUNNER_BASE_DIR/generated.configs -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF"
         printf '%s \n' "`$CUTTLEFISH_COMMAND_PREFIX $@`"
         ;;
 
