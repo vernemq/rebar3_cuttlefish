@@ -101,6 +101,10 @@ relx_start_command() {
 
 if [ $RELX_REPLACE_OS_VARS ]; then
     awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF" > "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new"
+    if [ -e "$RUNNER_ETC_DIR/advanced.config" ]; then
+        awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$RUNNER_ETC_DIR/advanced.config" > "$RUNNER_ETC_DIR/advanced.config.new"
+        mv "$RUNNER_ETC_DIR/advanced.config.new" "$RUNNER_ETC_DIR/advanced.config"
+    fi
 else
     cp "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF" "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new"
 fi
