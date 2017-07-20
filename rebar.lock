@@ -1,12 +1,12 @@
 {"1.1.0",
-[{<<"cuttlefish">>,{pkg,<<"cuttlefish">>,<<"2.0.8">>},0},
+[{<<"cuttlefish">>,{pkg,<<"cuttlefish">>,<<"2.0.12">>},0},
  {<<"getopt">>,{pkg,<<"getopt">>,<<"0.8.2">>},1},
- {<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.8">>},2},
- {<<"lager">>,{pkg,<<"lager">>,<<"3.2.1">>},1}]}.
+ {<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.9">>},2},
+ {<<"lager">>,{pkg,<<"lager">>,<<"3.2.4">>},1}]}.
 [
 {pkg_hash,[
- {<<"cuttlefish">>, <<"8B2AF27EF8540FCF23CFB6C037318E5C4EBB8D12A1E44F9F932B875B14005C28">>},
+ {<<"cuttlefish">>, <<"1441A12BCE207F7FC796A4DA50D47080D21E83E15309AD6496DE27840A54D5FC">>},
  {<<"getopt">>, <<"B17556DB683000BA50370B16C0619DF1337E7AF7ECBF7D64FBF8D1D6BCE3109B">>},
- {<<"goldrush">>, <<"2024BA375CEEA47E27EA70E14D2C483B2D8610101B4E852EF7F89163CDB6E649">>},
- {<<"lager">>, <<"EEF4E18B39E4195D37606D9088EA05BF1B745986CF8EC84F01D332456FE88D17">>}]}
+ {<<"goldrush">>, <<"F06E5D5F1277DA5C413E84D5A2924174182FB108DABB39D5EC548B27424CD106">>},
+ {<<"lager">>, <<"A6DEB74DAE7927F46BD13255268308EF03EB206EC784A94EAF7C1C0F3B811615">>}]}
 ].
