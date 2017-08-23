@@ -19,6 +19,8 @@ RUNNER_LOG_DIR="${RUNNER_LOG_DIR:-$RELEASE_ROOT_DIR/log}"
 RUNNER_BASE_DIR=$RELEASE_ROOT_DIR
 RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-{{ platform_etc_dir }}}"
 RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-$RELEASE_ROOT_DIR/etc}"
+RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-{{ platform_gen_dir }}}"
+RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-$RUNNER_BASE_DIR}"
 
 if [ "$RUNNER_ETC_DIR" = "${RUNNER_ETC_DIR#/}" ]
 then
@@ -154,7 +156,7 @@ CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RUNNER_BASE_DIR/bin/cuttlefish"
 
 cd "$ROOTDIR"
 
-if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_BASE_DIR/generated.conf -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new)
+if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new)
 then
     CONFIG_FILES="$CUTTLEFISH_CONFIG"
 else
@@ -276,7 +278,7 @@ case "$1" in
                 ;;
         esac
 
-        CUTTLEFISH_COMMAND_PREFIX="$RUNNER_BASE_DIR/bin/cuttlefish -e $RUNNER_ETC_DIR -s $RUNNER_BASE_DIR/share/schema -d $RUNNER_BASE_DIR/generated.configs -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF"
+        CUTTLEFISH_COMMAND_PREFIX="$RUNNER_BASE_DIR/bin/cuttlefish -e $RUNNER_ETC_DIR -s $RUNNER_BASE_DIR/share/schema -d $RUNNER_BASE_DIR/generated.conf -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF"
         printf '%s \n' "`$CUTTLEFISH_COMMAND_PREFIX $@`"
         ;;
 
