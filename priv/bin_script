@@ -15,6 +15,7 @@ ERTS_VSN="{{ erts_vsn }}"
 CODE_LOADING_MODE="${CODE_LOADING_MODE:-embedded}"
 REL_DIR="$RELEASE_ROOT_DIR/releases/$REL_VSN"
 ERL_OPTS="{{ erl_opts }}"
+RUNNER_LOG_DIR="${RUNNER_LOG_DIR:-{{ platform_log_dir }}}"
 RUNNER_LOG_DIR="${RUNNER_LOG_DIR:-$RELEASE_ROOT_DIR/log}"
 RUNNER_BASE_DIR=$RELEASE_ROOT_DIR
 RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-{{ platform_etc_dir }}}"
