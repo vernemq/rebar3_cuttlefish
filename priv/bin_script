@@ -130,7 +130,7 @@ if [ -z "$NAME_ARG" ]; then
     fi
 fi
 
-PIPE_DIR="${PIPE_DIR:- {{ platform_pipe_dir }}}"
+PIPE_DIR="${PIPE_DIR:-{{ platform_pipe_dir }}}"
 PIPE_DIR="${PIPE_DIR:-/tmp/erl_pipes/$NAME/}"
 
 # Extract the target cookie
