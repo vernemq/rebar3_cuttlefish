@@ -64,11 +64,11 @@ do(State) ->
     Overlays1 = case {lists:keyfind(schema_discovery, 1, CFConf),
                       lists:keyfind(overlay, 1, Relx)} of
                     {{schema_discovery, false}, {overlay, Overlays}} ->
-                        Overlays ++ overlays(Name, CuttlefishBin, Overlays, []);
+                        overlays(Name, CuttlefishBin, Overlays, []) ++ Overlays;
                     {{schema_discovery, false}, _} ->
                         overlays(Name, CuttlefishBin, [], []);
                     {_, {overlay, Overlays}} when is_list(Overlays) ->
-                        Overlays ++ overlays(Name, CuttlefishBin, Overlays, AllSchemas);
+                        overlays(Name, CuttlefishBin, Overlays, AllSchemas) ++ Overlays;
                     _ ->
                         overlays(Name, CuttlefishBin, [], AllSchemas)
                 end,
