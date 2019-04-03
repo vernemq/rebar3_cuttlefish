@@ -1,0 +1,28 @@
+RUNNER_ETC_DIR=($RELEASE_ROOT_DIR"/etc")
+CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/cuttlefish"
+
+if CUTTLE_CONF=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d "generated.configs" -s "$RELEASE_ROOT_DIR/share/schema/" -c "$RUNNER_ETC_DIR/{{release_name}}.conf")
+then
+    RELX_CONFIG_PATH=$(sed 's/\.config$//' <<< $(awk -F"-config |-args_file |-vm_args " '{print $2}' <<< $CUTTLE_CONF))
+    VMARGS_PATH=$(awk -F"-config | -args_file | -vm_args " '{print $3}' <<< $CUTTLE_CONF)
+
+    ln -sf $VMARGS_PATH releases/{{release_version}}/vm.args
+else
+    echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
+    exit 1
+fi
+
+NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' "$RUNNER_ETC_DIR/{{release_name}}.conf" 2> /dev/null | tail -n 1 | cut -d = -f 2`
+if [ -z "$NODENAME" ]; then
+    echo "vm.args needs to have a -name parameter."
+    echo "  -sname is not supported."
+    exit 1
+else
+    NAME_TYPE="-name"    
+    NAME="${NODENAME# *}"
+    export NAME
+
+    PIPE_DIR="/tmp/erl_pipes/$NAME/"
+    mkdir -p "$PIPE_DIR"
+    export PIPE_DIR
+fi
