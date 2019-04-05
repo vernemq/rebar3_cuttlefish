@@ -8,6 +8,7 @@
 -define(PROVIDER, release).
 -define(NAMESPACE, default).
 -define(DEPS, [{?NAMESPACE, compile}]).
+-define(SCHEMA_IDX_START, 10).
 
 %% ===================================================================
 %% Public API
@@ -61,6 +62,11 @@ do(State) ->
     {ok, Cuttlefish} = rebar_app_utils:find(<<"cuttlefish">>, rebar_state:all_plugin_deps(State)),
     AllSchemas = schemas([Cuttlefish | Deps++Apps]),
 
+    OrderSchemas = case lists:keyfind(schema_order, 1, CFConf) of
+                       {schema_order, Order} -> Order;
+                       _ -> false
+                   end,
+
     DisableCFRelScripts = case lists:keyfind(disable_bin_scripts, 1, CFConf) of
                               {disable_bin_scripts, true} -> true;
                               _ -> false
@@ -69,13 +75,13 @@ do(State) ->
     Overlays1 = case {lists:keyfind(schema_discovery, 1, CFConf),
                       lists:keyfind(overlay, 1, Relx)} of
                     {{schema_discovery, false}, {overlay, Overlays}} ->
-                        overlays(Name, CuttlefishBin, Overlays, []) ++ Overlays;
+                        overlays(Name, CuttlefishBin, Overlays, [], OrderSchemas) ++ Overlays;
                     {{schema_discovery, false}, _} ->
-                        overlays(Name, CuttlefishBin, [], []);
+                        overlays(Name, CuttlefishBin, [], [], OrderSchemas);
                     {_, {overlay, Overlays}} when is_list(Overlays) ->
-                        overlays(Name, CuttlefishBin, Overlays, AllSchemas) ++ Overlays;
+                        overlays(Name, CuttlefishBin, Overlays, AllSchemas, OrderSchemas) ++ Overlays;
                     _ ->
-                        overlays(Name, CuttlefishBin, [], AllSchemas)
+                        overlays(Name, CuttlefishBin, [], AllSchemas, OrderSchemas)
                 end,
 
     Overlays2 = overlay_add_bin_scripts(DisableCFRelScripts, Name, Overlays1),
@@ -132,13 +138,28 @@ schemas(Apps) ->
                       filelib:wildcard(filename:join([Dir, "{priv,schema}", "*.schema"]))
                   end, Apps) ++ filelib:wildcard(filename:join(["{priv,schema}", "*.schema"])).
 
-overlays(_Name, Cuttlefish, Overlays, Schemas) ->
+overlays(_Name, Cuttlefish, Overlays, Schemas, OrderSchemas) ->
     Overlays1 = [ list_to_binary(F) || {_, F, _} <- Overlays],
-    SchemaOverlays = [{template, Schema, filename:join(["share", "schema", filename:basename(Schema)])}
-                      || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
+    SchemaOverlays = [begin
+                            FileName = create_filename(Schema, OrderSchemas),
+                            {template, Schema, filename:join(["share", "schema", FileName])}
+                      end || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
     [{copy, Cuttlefish, "bin/cuttlefish"},
      {mkdir, "share"},
      {mkdir, "share/schema"} | SchemaOverlays].
+
+create_filename(Schema, false) ->
+    filename:basename(Schema);
+create_filename(Schema, OrderSchemas) ->
+    SchemaBaseName = list_to_atom(filename:basename(Schema, ".schema")),
+    IndexOrderSchemas = lists:zip(OrderSchemas, lists:seq(?SCHEMA_IDX_START, length(OrderSchemas) + (?SCHEMA_IDX_START - 1))),
+    Index = lists:keyfind(SchemaBaseName, 1, IndexOrderSchemas),
+    maybe_index_filename(Schema, Index).
+
+maybe_index_filename(Schema, false) ->
+    filename:basename(Schema);
+maybe_index_filename(Schema, {_, Index}) ->
+    integer_to_list(Index) ++ "-" ++ filename:basename(Schema).
 
 overlay_add_bin_scripts(true, _Name, Overlays) ->
     CFConfigHookTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "cf_config"]),
