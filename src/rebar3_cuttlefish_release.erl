@@ -67,11 +67,6 @@ do(State) ->
                        _ -> false
                    end,
 
-    DisableCFRelScripts = case lists:keyfind(disable_bin_scripts, 1, CFConf) of
-                              {disable_bin_scripts, true} -> true;
-                              _ -> false
-                          end,
-
     Overlays1 = case {lists:keyfind(schema_discovery, 1, CFConf),
                       lists:keyfind(overlay, 1, Relx)} of
                     {{schema_discovery, false}, {overlay, Overlays}} ->
