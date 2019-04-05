@@ -134,7 +134,7 @@ schemas(Apps) ->
                       filelib:wildcard(filename:join([Dir, "{priv,schema}", "*.schema"]))
                   end, Apps) ++ filelib:wildcard(filename:join(["{priv,schema}", "*.schema"])).
 
-overlays(_Name, Cuttlefish, Overlays, Schemas, OrderSchemas) ->
+overlays(Name, Cuttlefish, Overlays, Schemas, OrderSchemas) ->
     BinScriptTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "bin_script"]),
     NodeTool = filename:join([code:priv_dir(rebar3_cuttlefish), "nodetool"]),
     InstallUpgrade = filename:join([code:priv_dir(rebar3_cuttlefish), "install_upgrade_escript"]),
