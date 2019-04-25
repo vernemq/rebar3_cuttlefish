@@ -8,8 +8,9 @@ then
     CONFIG_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-config ([^ ]+).*/\1/')
     VMARGS_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-vm_args ([^ ]+).*/\1/')
 
+    RELX_CONFIG_PATH=releases/{{release_version}}/sys.config
     ln -sf $VMARGS_PATH releases/{{release_version}}/vm.args
-    ln -sf $CONFIG_PATH releases/{{release_version}}/sys.config
+    ln -sf $CONFIG_PATH $RELX_CONFIG_PATH
 else
     echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
     exit 1
