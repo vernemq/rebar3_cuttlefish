@@ -97,9 +97,7 @@ do(State) ->
 
     StartHookState = maybe_set_startup_hook(DisableCFRelScripts, State),
     State1 = rebar_state:set(State, relx, lists:keydelete(overlay, 1, Relx) ++
-                                 [{sys_config, false},
-                                  {vm_args, DisableCFRelScripts},
-                                  {generate_start_script, DisableCFRelScripts},
+                                 [{generate_start_script, DisableCFRelScripts},
                                   {overlay, Overlays3} | StartHookState]),
     Res = rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1),
     SchemaGlob = filename:join([TargetDir, "share", "schema", "*.schema"]),
@@ -174,7 +172,7 @@ overlay_add_bin_scripts(false, Name, Overlays) ->
      {template, BinScriptTemplate, BinScript} | Overlays].
 
 maybe_set_startup_hook(false, _State) ->
-    [];
+    [{sys_config, false}, {vm_args, false}];
 maybe_set_startup_hook(true, State) ->
     RelxState = rebar_state:get(State, relx),
     StartHooks0 = 
