@@ -35,7 +35,7 @@ do(State) ->
     Relx = rebar_state:get(State, relx, []),
     CFConf = rebar_state:get(State, cuttlefish, []),
 
-    ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
+    ReleaseDir = rebar_release_dir(State),
     CuttlefishBin = case filelib:is_regular(filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"])) of
                  true ->
                      filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"]);
@@ -166,3 +166,16 @@ is_overlay(SchemaS, Overlays) ->
                  binary:longest_common_suffix(
                    [Schema, Overlay])} || Overlay <- Overlays],
     [L || {L, L} <- Suffixes] =/= [].
+
+%% Determine if --output-dir or -o has been passed, and if so, use
+%% that path for the release directory. Otherwise, default to the
+%% default directory.
+rebar_release_dir(State) ->
+    DefaultRelDir = filename:join(rebar_dir:base_dir(State), "rel"),
+    {Options, _} = rebar_state:command_parsed_args(State),
+    case proplists:get_value(output_dir, Options) of
+        undefined ->
+            DefaultRelDir;
+        OutputDir ->
+            OutputDir
+    end.
