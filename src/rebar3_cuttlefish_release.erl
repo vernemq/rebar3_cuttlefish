@@ -92,7 +92,7 @@ do(State) ->
                     true ->
                         [{template, ConfFile, "etc/" ++ CFFile} | Overlays2];
                     false ->
-                        Overlays2
+                        [{mkdir "etc/"} | Overlays2]
                 end,
 
     StartHookState = maybe_set_startup_hook(DisableCFRelScripts, State),
