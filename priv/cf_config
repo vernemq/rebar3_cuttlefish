@@ -1,7 +1,7 @@
 #!/bin/sh
 
-RUNNER_ETC_DIR=${{{runner_etc_dir}}:-$RELEASE_ROOT_DIR"/etc"}
-RUNNER_SCHEMA_DIR=${{{runner_schema_dir}}:-$RELEASE_ROOT_DIR"/schema"}
+RUNNER_ETC_DIR=${{{runner_etc_dir}}:-$RELEASE_ROOT_DIR/etc}
+RUNNER_SCHEMA_DIR=${{{runner_schema_dir}}:-$RELEASE_ROOT_DIR/schema}
 CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/cuttlefish"
 
 if CUTTLE_CONF=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d "generated.configs" -s $RUNNER_SCHEMA_DIR -c "$RUNNER_ETC_DIR/{{release_name}}.conf")
