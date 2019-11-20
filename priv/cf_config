@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RUNNER_ETC_DIR="{{runner_etc_dir}}"
+RUNNER_ETC_DIR="{{platform_etc_dir}}"
 RUNNER_ETC_DIR=${RUNNER_ETC_DIR:-$RELEASE_ROOT_DIR/etc}
 RUNNER_SCHEMA_DIR=$RELEASE_ROOT_DIR/share/schema
 CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/cuttlefish"
