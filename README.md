@@ -81,3 +81,32 @@ $ _build/node<#>/rel/<name>/bin/<name> console
 ## Optional Ordering of Schemas
 
 Since cuttlefish uses sort order of the schema files by their name you may want to prepend a number to the schema file name, like `01-eleveldb.schema`. While the plugin will automatically copy all schema files for you it will first check if there is already an overlay entry for each schema file. So if in `overlay` there is an entry `{template, "schema/eleveldb.schema", "01-eleveldb.schema"}` it will not make another copy.
+
+Alternatively, we can specify the ordering of discovered schemas in the rebar.config by setting schema_order in our cuttlefish configuration. This will handle the prefixing for you and the discovered schemas will be ordered as per the order specified in the list. Any discovered schemas that are not in the list will be copied over as-is (with no ordering prefix).
+
+```erlang
+{cuttlefish,
+ [{file_name, "<release>.conf.example"},
+  {schema_discovery, true},
+  {schema_order, [
+    riak
+    erlang_vm
+    riak_core
+  ]}
+]}.
+```
+Discovered schemas:
+```erlang
+riak.schema
+erlang_vm.schema
+riak_core.schema
+riak_repl.schema
+```
+
+Resulting copied schemas:
+```erlang
+10-riak.schema
+11-erlang_vm.schema
+12-riak_core.schema
+riak_repl.schema (not specified in ordering)
+```

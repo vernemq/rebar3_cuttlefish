@@ -8,6 +8,7 @@
 -define(PROVIDER, release).
 -define(NAMESPACE, default).
 -define(DEPS, [{?NAMESPACE, compile}]).
+-define(SCHEMA_IDX_START, 10).
 
 %% ===================================================================
 %% Public API
@@ -34,7 +35,7 @@ do(State) ->
     Relx = rebar_state:get(State, relx, []),
     CFConf = rebar_state:get(State, cuttlefish, []),
 
-    ReleaseDir = filename:join(rebar_dir:base_dir(State), "rel"),
+    ReleaseDir = rebar_release_dir(State),
     CuttlefishBin = case filelib:is_regular(filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"])) of
                  true ->
                      filename:join([rebar_dir:base_dir(State), "bin", "cuttlefish"]);
@@ -61,31 +62,43 @@ do(State) ->
     {ok, Cuttlefish} = rebar_app_utils:find(<<"cuttlefish">>, rebar_state:all_plugin_deps(State)),
     AllSchemas = schemas([Cuttlefish | Deps++Apps]),
 
+    OrderSchemas = case lists:keyfind(schema_order, 1, CFConf) of
+                       {schema_order, Order} -> Order;
+                       _ -> false
+                   end,
+
+    DisableCFRelScripts = case lists:keyfind(disable_bin_scripts, 1, CFConf) of
+                              {disable_bin_scripts, true} -> true;
+                              _ -> false
+                          end,
+
     Overlays1 = case {lists:keyfind(schema_discovery, 1, CFConf),
                       lists:keyfind(overlay, 1, Relx)} of
                     {{schema_discovery, false}, {overlay, Overlays}} ->
-                        overlays(Name, CuttlefishBin, Overlays, []) ++ Overlays;
+                        overlays(Name, CuttlefishBin, Overlays, [], OrderSchemas) ++ Overlays;
                     {{schema_discovery, false}, _} ->
-                        overlays(Name, CuttlefishBin, [], []);
+                        overlays(Name, CuttlefishBin, [], [], OrderSchemas);
                     {_, {overlay, Overlays}} when is_list(Overlays) ->
-                        overlays(Name, CuttlefishBin, Overlays, AllSchemas) ++ Overlays;
+                        overlays(Name, CuttlefishBin, Overlays, AllSchemas, OrderSchemas) ++ Overlays;
                     _ ->
-                        overlays(Name, CuttlefishBin, [], AllSchemas)
+                        overlays(Name, CuttlefishBin, [], AllSchemas, OrderSchemas)
                 end,
+
+    Overlays2 = overlay_add_bin_scripts(DisableCFRelScripts, Name, Overlays1),
 
     ConfFile = filename:join("config", atom_to_list(Name)++".conf"),
 
-    Overlays2 = case filelib:is_regular(ConfFile) of
+    Overlays3 = case filelib:is_regular(ConfFile) of
                     true ->
-                        [{template, ConfFile, "etc/" ++ CFFile} | Overlays1];
+                        [{template, ConfFile, "etc/" ++ CFFile} | Overlays2];
                     false ->
-                        Overlays1
+                        [{mkdir, "etc/"} | Overlays2]
                 end,
+
+    StartHookState = maybe_set_startup_hook(DisableCFRelScripts, State),
     State1 = rebar_state:set(State, relx, lists:keydelete(overlay, 1, Relx) ++
-                                 [{sys_config, false},
-                                  {vm_args, false},
-                                  {generate_start_script, false},
-                                  {overlay, Overlays2}]),
+                                 [{generate_start_script, DisableCFRelScripts},
+                                  {overlay, Overlays3} | StartHookState]),
     Res = rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1),
     SchemaGlob = filename:join([TargetDir, "share", "schema", "*.schema"]),
     ReleaseSchemas = filelib:wildcard(SchemaGlob),
@@ -123,20 +136,65 @@ schemas(Apps) ->
                       filelib:wildcard(filename:join([Dir, "{priv,schema}", "*.schema"]))
                   end, Apps) ++ filelib:wildcard(filename:join(["{priv,schema}", "*.schema"])).
 
-overlays(Name, Cuttlefish, Overlays, Schemas) ->
+overlays(_Name, Cuttlefish, Overlays, Schemas, OrderSchemas) ->
+    Overlays1 = [ list_to_binary(F) || {_, F, _} <- Overlays],
+    SchemaOverlays = [begin
+                            FileName = create_filename(Schema, OrderSchemas),
+                            {template, Schema, filename:join(["share", "schema", FileName])}
+                      end || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
+    [{copy, Cuttlefish, "bin/cuttlefish"},
+     {mkdir, "share"},
+     {mkdir, "share/schema"} | SchemaOverlays].
+
+overlay_add_bin_scripts(true, _Name, Overlays) ->
+    CFConfigHookTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "cf_config"]),
+    [{template, CFConfigHookTemplate, filename:join(["bin", "cf_config"])} | Overlays];
+overlay_add_bin_scripts(false, Name, Overlays) ->
     BinScriptTemplate = filename:join([code:priv_dir(rebar3_cuttlefish), "bin_script"]),
     NodeTool = filename:join([code:priv_dir(rebar3_cuttlefish), "nodetool"]),
     InstallUpgrade = filename:join([code:priv_dir(rebar3_cuttlefish), "install_upgrade_escript"]),
     BinScript = filename:join(["bin", Name]),
-    Overlays1 = [ list_to_binary(F) || {_, F, _} <- Overlays],
-    SchemaOverlays = [{template, Schema, filename:join(["share", "schema", filename:basename(Schema)])}
-                      || Schema <- Schemas, not is_overlay(Schema, Overlays1)],
-    [{copy, Cuttlefish, "bin/cuttlefish"},
-     {mkdir, "share"},
-     {mkdir, "share/schema"},
-     {copy, NodeTool, filename:join(["bin", "nodetool"])},
+    [{copy, NodeTool, filename:join(["bin", "nodetool"])},
      {copy, InstallUpgrade, filename:join(["bin", "install_upgrade.escript"])},
-     {template, BinScriptTemplate, BinScript} | SchemaOverlays].
+     {template, BinScriptTemplate, BinScript} | Overlays].
+
+maybe_set_startup_hook(false, _State) ->
+    [{sys_config, false}, {vm_args, false}];
+maybe_set_startup_hook(true, State) ->
+    RelxState = rebar_state:get(State, relx),
+    StartHooks0 = 
+        case lists:keyfind(extended_start_script_hooks, 1, RelxState) of
+            {extended_start_script_hooks, StartHooks1} ->
+                do_set_start_hook(StartHooks1);
+            _ ->
+                do_set_start_hook([])
+        end,
+    [{extended_start_script, true},
+     {extended_start_script_hooks, StartHooks0}].
+
+do_set_start_hook(StartHooks) ->
+    CFPreStart = {custom, "cf_config"},
+    PreStart =
+        case lists:keyfind(pre_start, 1, StartHooks) of
+            {pre_start, PreStartHooks} ->
+                [CFPreStart | PreStartHooks];
+            _ ->
+                [CFPreStart]
+        end,
+    lists:keystore(pre_start, 1, StartHooks, {pre_start, PreStart}).
+
+create_filename(Schema, false) ->
+    filename:basename(Schema);
+create_filename(Schema, OrderSchemas) ->
+    SchemaBaseName = list_to_atom(filename:basename(Schema, ".schema")),
+    IndexOrderSchemas = lists:zip(OrderSchemas, lists:seq(?SCHEMA_IDX_START, length(OrderSchemas) + (?SCHEMA_IDX_START - 1))),
+    Index = lists:keyfind(SchemaBaseName, 1, IndexOrderSchemas),
+    maybe_index_filename(Schema, Index).
+
+maybe_index_filename(Schema, false) ->
+    filename:basename(Schema);
+maybe_index_filename(Schema, {_, Index}) ->
+    integer_to_list(Index) ++ "-" ++ filename:basename(Schema).
 
 is_overlay(SchemaS, Overlays) ->
     Schema = list_to_binary(SchemaS),
@@ -144,3 +202,16 @@ is_overlay(SchemaS, Overlays) ->
                  binary:longest_common_suffix(
                    [Schema, Overlay])} || Overlay <- Overlays],
     [L || {L, L} <- Suffixes] =/= [].
+
+%% Determine if --output-dir or -o has been passed, and if so, use
+%% that path for the release directory. Otherwise, default to the
+%% default directory.
+rebar_release_dir(State) ->
+    DefaultRelDir = filename:join(rebar_dir:base_dir(State), "rel"),
+    {Options, _} = rebar_state:command_parsed_args(State),
+    case proplists:get_value(output_dir, Options) of
+        undefined ->
+            DefaultRelDir;
+        OutputDir ->
+            OutputDir
+    end.
