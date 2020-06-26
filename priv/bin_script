@@ -108,8 +108,9 @@ if [ $RELX_REPLACE_OS_VARS ]; then
         awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$RUNNER_ETC_DIR/advanced.config" > "$RUNNER_ETC_DIR/advanced.config.new"
         mv "$RUNNER_ETC_DIR/advanced.config.new" "$RUNNER_ETC_DIR/advanced.config"
     fi
+    CUTTLEFISH_CONF_NEW=$CUTTLEFISH_CONF.new
 else
-    cp "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF" "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new"
+    CUTTLEFISH_CONF_NEW=$CUTTLEFISH_CONF
 fi
 
 # Make sure log directory exists
@@ -117,11 +118,11 @@ mkdir -p "$RUNNER_LOG_DIR"
 
 # Use $CWD/sys.config if exists, otherwise releases/VSN/sys.config
 if [ -z "$NAME_ARG" ]; then
-    NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new 2> /dev/null | tail -n 1 | cut -d = -f 2`
+    NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW 2> /dev/null | tail -n 1 | cut -d = -f 2`
     if [ -z "$NODENAME" ]; then
         echo "vm.args needs to have a -name parameter."
         echo "  -sname is not supported."
-        echo "  couldn't find 'nodename' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new"
+        echo "  couldn't find 'nodename' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW"
         echo "  \$PWD is $PWD"
         exit 1
     else
@@ -136,10 +137,10 @@ PIPE_DIR="${PIPE_DIR:-/tmp/erl_pipes/$NAME/}"
 # Extract the target cookie
 #COOKIE_ARG=`grep -e '-setcookie' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$COOKIE_ARG" ]; then
-    COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new 2> /dev/null | cut -d = -f 2 | tr -d ' '`
+    COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW 2> /dev/null | cut -d = -f 2 | tr -d ' '`
     if [ -z "$COOKIE" ]; then
         echo "vm.args needs to have a -setcookie parameter."
-        echo "  couldn't find 'distributed_cookie' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new"
+        echo "  couldn't find 'distributed_cookie' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW"
         echo "  \$PWD is $PWD"
         exit 1
     else
@@ -158,7 +159,7 @@ CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RUNNER_BASE_DIR/bin/cuttlefish"
 
 cd "$ROOTDIR"
 
-if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new)
+if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW)
 then
     CONFIG_FILES="$CUTTLEFISH_CONFIG"
 else
