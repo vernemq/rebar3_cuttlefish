@@ -12,12 +12,8 @@ CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/cuttlefish"
 
 if CUTTLE_CONF=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_SCHEMA_DIR -c "$RUNNER_ETC_DIR/{{release_name}}.conf")
 then
-    CONFIG_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-config ([^ ]+).*/\1/')
-    VMARGS_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-vm_args ([^ ]+).*/\1/')
-
-    RELX_CONFIG_PATH=releases/{{release_version}}/sys.config
-    ln -sf $VMARGS_PATH releases/{{release_version}}/vm.args
-    ln -sf $CONFIG_PATH $RELX_CONFIG_PATH
+    export RELX_CONFIG_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-config ([^ ]+).*/\1/')
+    export VMARGS_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-vm_args ([^ ]+).*/\1/')
 else
     echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
     exit 1
