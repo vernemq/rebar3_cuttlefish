@@ -1,95 +1,34 @@
 #!/bin/sh
 
-set -e
+RUNNER_ETC_DIR="{{platform_etc_dir}}"
+RUNNER_ETC_DIR=${RUNNER_ETC_DIR:-$RELEASE_ROOT_DIR/etc}
+RUNNER_SCHEMA_DIR=$RELEASE_ROOT_DIR/share/schema
+CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/cuttlefish"
 
-SCRIPT=$(readlink $0 || true)
-if [ -z $SCRIPT ]; then
-    SCRIPT=$0
-fi;
-SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
-RELEASE_ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
-REL_NAME="{{ release_name }}"
-CUTTLEFISH_CONF="{{ release_name }}.conf"
-REL_VSN="{{ rel_vsn }}"
-ERTS_VSN="{{ erts_vsn }}"
-CODE_LOADING_MODE="${CODE_LOADING_MODE:-embedded}"
-REL_DIR="$RELEASE_ROOT_DIR/releases/$REL_VSN"
-ERL_OPTS="{{ erl_opts }}"
-RUNNER_LOG_DIR="${RUNNER_LOG_DIR:-{{ platform_log_dir }}}"
-RUNNER_LOG_DIR="${RUNNER_LOG_DIR:-$RELEASE_ROOT_DIR/log}"
-RUNNER_BASE_DIR=$RELEASE_ROOT_DIR
-RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-{{ platform_etc_dir }}}"
-RUNNER_ETC_DIR="${RUNNER_ETC_DIR:-$RELEASE_ROOT_DIR/etc}"
-RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-{{ platform_gen_dir }}}"
-RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-$RUNNER_BASE_DIR}"
-
-if [ "$RUNNER_ETC_DIR" = "${RUNNER_ETC_DIR#/}" ]
+if CUTTLE_CONF=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d "generated.configs" -s $RUNNER_SCHEMA_DIR -c "$RUNNER_ETC_DIR/{{release_name}}.conf")
 then
-    # if relative, make it relative to RELEASE_ROOT_DIR
-    RUNNER_ETC_DIR=$RELEASE_ROOT_DIR/$RUNNER_ETC_DIR
-fi # else absolute, keep it as it is
+    CONFIG_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-config ([^ ]+).*/\1/')
+    VMARGS_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-vm_args ([^ ]+).*/\1/')
 
-if [ $RELX_REPLACE_OS_VARS ]; then
-    awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF" > "$RUNNER_ETC_DIR/$CUTTLEFISH_CONF.new"
-    if [ -e "$RUNNER_ETC_DIR/advanced.config" ]; then
-        awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < "$RUNNER_ETC_DIR/advanced.config" > "$RUNNER_ETC_DIR/advanced.config.new"
-        mv "$RUNNER_ETC_DIR/advanced.config.new" "$RUNNER_ETC_DIR/advanced.config"
-    fi
-    CUTTLEFISH_CONF_NEW=$CUTTLEFISH_CONF.new
+    RELX_CONFIG_PATH=releases/{{release_version}}/sys.config
+    ln -sf $VMARGS_PATH releases/{{release_version}}/vm.args
+    ln -sf $CONFIG_PATH $RELX_CONFIG_PATH
 else
-    CUTTLEFISH_CONF_NEW=$CUTTLEFISH_CONF
-fi
-
-# Make sure log directory exists
-mkdir -p "$RUNNER_LOG_DIR"
-
-# Use $CWD/sys.config if exists, otherwise releases/VSN/sys.config
-if [ -z "$NAME_ARG" ]; then
-    NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW 2> /dev/null | tail -n 1 | cut -d = -f 2`
-    if [ -z "$NODENAME" ]; then
-        echo "vm.args needs to have a -name parameter."
-        echo "  -sname is not supported."
-        echo "  couldn't find 'nodename' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW"
-        echo "  \$PWD is $PWD"
-        exit 1
-    else
-        NAME_TYPE="-name"
-        NAME="${NODENAME# *}"
-    fi
-fi
-
-PIPE_DIR="${PIPE_DIR:-{{ platform_pipe_dir }}}"
-PIPE_DIR="${PIPE_DIR:-/tmp/erl_pipes/$NAME/}"
-
-# Extract the target cookie
-#COOKIE_ARG=`grep -e '-setcookie' $RUNNER_ETC_DIR/vm.args`
-if [ -z "$COOKIE_ARG" ]; then
-    COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW 2> /dev/null | cut -d = -f 2 | tr -d ' '`
-    if [ -z "$COOKIE" ]; then
-        echo "vm.args needs to have a -setcookie parameter."
-        echo "  couldn't find 'distributed_cookie' in $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW"
-        echo "  \$PWD is $PWD"
-        exit 1
-    else
-        COOKIE_ARG="-setcookie $COOKIE"
-    fi
-fi
-
-find_erts_dir
-export ROOTDIR="$RELEASE_ROOT_DIR"
-export BINDIR="$ERTS_DIR/bin"
-export EMU="beam"
-export PROGNAME="erl"
-export LD_LIBRARY_PATH="$ERTS_DIR/lib:$LD_LIBRARY_PATH"
-ERTS_LIB_DIR="$ERTS_DIR/../lib"
-CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RUNNER_BASE_DIR/bin/cuttlefish"
-
-cd "$ROOTDIR"
-
-if CUTTLEFISH_CONFIG=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_BASE_DIR/share/schema/ -c $RUNNER_ETC_DIR/$CUTTLEFISH_CONF_NEW)
-then
-    CONFIG_FILES="$CUTTLEFISH_CONFIG"
-else
-    echo "Cuttlefish failed! Oh no!"
+    echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
     exit 1
+fi
+
+NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' "$RUNNER_ETC_DIR/{{release_name}}.conf" 2> /dev/null | tail -n 1 | cut -d = -f 2`
+if [ -z "$NODENAME" ]; then
+    echo "vm.args needs to have a -name parameter."
+    echo "  -sname is not supported."
+    exit 1
+else
+    NAME_TYPE="-name"    
+    NAME="${NODENAME# *}"
+    export NAME
+
+    PIPE_DIR="/tmp/erl_pipes/$NAME/"
+    mkdir -p "$PIPE_DIR"
+    export PIPE_DIR
 fi
