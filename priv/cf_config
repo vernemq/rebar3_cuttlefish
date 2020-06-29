@@ -14,6 +14,8 @@ if CUTTLE_CONF=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.
 then
     export RELX_CONFIG_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-config ([^ ]+).*/\1/')
     export VMARGS_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-vm_args ([^ ]+).*/\1/')
+    ln -sf $RELX_CONFIG_PATH $RUNNER_GEN_DIR/generated.conf/sys.config
+    ln -sf $VMARGS_PATH $RUNNER_GEN_DIR/generated.conf/vm.args
 else
     echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
     exit 1
