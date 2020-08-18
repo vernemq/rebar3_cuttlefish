@@ -1,6 +1,6 @@
 {application,rebar3_cuttlefish,
              [{description,"A rebar plugin"},
-              {vsn,"0.16.0"},
+              {vsn,git},
               {registered,[]},
               {applications,[kernel,stdlib,cuttlefish]},
               {env,[]},
@@ -8,4 +8,4 @@
               {maintainers,[]},
               {licenses,["Apache"]},
               {links,[{"Github",
-                       "https://github.com/tsloughter/rebar3_cuttlefish"}]}]}.
+                       "https://github.com/basho/rebar3_cuttlefish"}]}]}.
