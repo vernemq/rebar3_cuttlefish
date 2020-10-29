@@ -22,7 +22,7 @@ init(State) ->
             {bare, true},                 % The task can be run by the user, always true
             {deps, ?DEPS},                % The list of dependencies
             {example, "rebar3 cuttlefish release"}, % How to use the plugin
-            {opts, relx:opt_spec_list()},                   % list of options understood by the plugin
+            {opts, supported_options()},                   % list of options understood by the plugin
             {short_desc, "Rebar3 cuttlefish release plugin"},
             {desc, ""}
     ]),
@@ -179,3 +179,17 @@ rebar_release_dir(State) ->
         OutputDir ->
             OutputDir
     end.
+
+%% @doc Return the options spec for the release command
+%%
+%% Attempts to get the options spec from two different functions to
+%% support latest changes in rebar3.
+%% Thansk @jfacorro at rebar3_clojerl
+
+-spec supported_options() -> any().
+supported_options() ->
+  try
+    relx:opt_spec_list()
+  catch _:undef ->
+      rebar_relx:opt_spec_list()
+  end.
