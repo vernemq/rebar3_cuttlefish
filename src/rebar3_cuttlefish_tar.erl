@@ -21,7 +21,7 @@ init(State) ->
             {bare, true},                 % The task can be run by the user, always true
             {deps, ?DEPS},                % The list of dependencies
             {example, "rebar3 cuttlefish tar"}, % How to use the plugin
-            {opts, relx:opt_spec_list()},                   % list of options understood by the plugin
+            {opts, rebar3_cuttlefish_release:supported_options()},                   % list of options understood by the plugin
             {short_desc, "Rebar3 cuttlefish release tarball plugin"},
             {desc, ""}
     ]),
