@@ -3,7 +3,9 @@
 
 -export([init/1
         ,do/1
-        ,format_error/1]).
+        ,format_error/1
+        ,supported_options/0
+        ,do_build/2]).
 
 -define(PROVIDER, release).
 -define(NAMESPACE, default).
@@ -92,7 +94,7 @@ do(State) ->
                                   {vm_args, false},
                                   {generate_start_script, false},
                                   {overlay, Overlays2}]),
-    Res = rebar_relx:do(rlx_prv_release, "release", ?PROVIDER, State1),
+    Res = do_build(?PROVIDER, State1),
     SchemaGlob = filename:join([TargetDir, "share", "schema", "*.schema"]),
     ReleaseSchemas = filelib:wildcard(SchemaGlob),
 
@@ -192,4 +194,10 @@ supported_options() ->
     relx:opt_spec_list()
   catch _:undef ->
       rebar_relx:opt_spec_list()
+  end.
+
+do_build(Provider, State) ->
+  try rebar_relx:do(Provider, State)
+  catch _:undef ->
+    rebar_relx:do(rlx_prv_release, atom_to_list(Provider), Provider, State)
   end.
