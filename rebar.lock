@@ -1,6 +1,6 @@
 {"1.2.0",
 [{<<"cuttlefish">>,
-  {git,"git://github.com/kyorai/cuttlefish.git",
+  {git,"https://github.com/kyorai/cuttlefish.git",
        {ref,"7afaad94e372da0252b0e0c066e8b585272968e4"}},
   0},
  {<<"getopt">>,{pkg,<<"getopt">>,<<"1.0.2">>},1}]}.
