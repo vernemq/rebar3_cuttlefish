@@ -1,7 +1,7 @@
 {"1.2.0",
 [{<<"cuttlefish">>,
-  {git,"git://github.com/ioolkos/cuttlefish.git",
-       {ref,"4bd40e51d4b6a40e72e8454b8a7cd0b44a2bdda5"}},
+  {git,"https://github.com/ioolkos/cuttlefish.git",
+       {ref,"e974fdf44f775fb1f0162095eb25ad1106bedf8a"}},
   0},
  {<<"getopt">>,{pkg,<<"getopt">>,<<"1.0.2">>},1}]}.
 [
