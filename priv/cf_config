@@ -10,18 +10,34 @@ RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-{{ platform_gen_dir }}}"
 RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-$RUNNER_BASE_DIR}"
 CUTTLEFISHCMD="$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/cuttlefish"
 
-if CUTTLE_CONF=$($CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_SCHEMA_DIR -c "$RUNNER_ETC_DIR/{{release_name}}.conf")
-then
-    export CONFIG_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-config ([^ ]+).*/\1/')
-    export VMARGS_PATH=$(echo $CUTTLE_CONF | sed -E 's/.*-vm_args ([^ ]+).*/\1/')
-    export RELX_CONFIG_PATH=$RUNNER_GEN_DIR/sys.config
-    export RELX_VMARGS_PATH=$RUNNER_GEN_DIR/vm.args
-    ln -sf $CONFIG_PATH $RELX_CONFIG_PATH
-    ln -sf $VMARGS_PATH $RELX_VMARGS_PATH
-else
-    echo "Cuttlefish failed! Oh no!: $CUTTLEFISH_CONFIG"
-    exit 1
-fi
+CUTTLE_CONF_STATUS=0
+CUTTLE_CONF_TMP="$(mktemp /tmp/XXXXX)"
+trap 'rm -f "$CUTTLE_CONF_TMP"' EXIT
+
+$CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_SCHEMA_DIR -c "$RUNNER_ETC_DIR/{{release_name}}.conf" 1> "$CUTTLE_CONF_TMP" 2>&1 || CUTTLE_CONF_STATUS=$?
+
+case $CUTTLE_CONF_STATUS in
+    0)
+        export CONFIG_PATH=$(sed -n -E 's/.*-config[[:space:]]+([^[:space:]]+).*/\1/p' "$CUTTLE_CONF_TMP" | tail -n 1)
+        export VMARGS_PATH=$(sed -n -E 's/.*-vm_args[[:space:]]+([^[:space:]]+).*/\1/p' "$CUTTLE_CONF_TMP" | tail -n 1)
+        if [ -z "$CONFIG_PATH" ] || [ -z "$VMARGS_PATH" ]; then
+            echo "Cuttlefish did not emit -config/-vm_args paths; output:"
+            cat "$CUTTLE_CONF_TMP"
+            exit 1
+        fi
+        export RELX_CONFIG_PATH=$RUNNER_GEN_DIR/sys.config
+        export RELX_VMARGS_PATH=$RUNNER_GEN_DIR/vm.args
+        ln -sf $CONFIG_PATH $RELX_CONFIG_PATH
+        ln -sf $VMARGS_PATH $RELX_VMARGS_PATH
+        CUTTLE_CONF="$(< "$CUTTLE_CONF_TMP")"
+        ;;
+    *)
+        echo "Cuttlefish failed! Oh no!:"
+        cat $CUTTLE_CONF_TMP
+        echo "Command that failed:"
+        echo $CUTTLEFISHCMD -e $RUNNER_ETC_DIR -d $RUNNER_GEN_DIR/generated.conf -s $RUNNER_SCHEMA_DIR -c "$RUNNER_ETC_DIR/{{release_name}}.conf"
+        exit 1
+esac
 
 NODENAME=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' "$RUNNER_ETC_DIR/{{release_name}}.conf" 2> /dev/null | tail -n 1 | cut -d = -f 2`
 if [ -z "$NODENAME" ]; then
